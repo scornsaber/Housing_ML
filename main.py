@@ -21,6 +21,7 @@ from sklearn.linear_model import Ridge
 from sklearn.ensemble import RandomForestRegressor, GradientBoostingRegressor
 from sklearn.model_selection import train_test_split
 from sklearn.metrics.pairwise import cosine_similarity
+from sklearn.discriminant_analysis import LinearDiscriminantAnalysis
 
 # CONFIG 
 DATA_PATH = r"/home/scorn556/Housing_ML/house_prices_dataset.csv"  # change if needed
@@ -181,6 +182,18 @@ def ask_int(prompt, default=None):
 def main():
     print("\n=== Local Home Finder (Simplified) ===")
     df = load_and_clean(DATA_PATH)
+
+    # Lda for comparison
+    X = df[NUM_COLS].values
+    y_cls = pd.qcut(df[TARGET_COL], q=3, labels=False)
+
+    scaler = StandardScaler()
+    X_std = scaler.fit_transform(X)
+
+    lda = LinearDiscriminantAnalysis(n_components=2)
+    X_lda = lda.fit_transform(X_std, y_cls)
+
+
     tm = train_models(df)
     print(f"Loaded {len(df):,} rows. Models trained.\n")
 
