@@ -1,0 +1,189 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>Local Home Finder</title>
+    <style>
+        :root {
+            font-family: Arial, sans-serif;
+            background: #f6f7fb;
+            color: #1c1c1c;
+        }
+        body {
+            max-width: 960px;
+            margin: 2rem auto;
+            padding: 0 1rem 4rem;
+        }
+        header {
+            margin-bottom: 2rem;
+        }
+        form, section {
+            background: #fff;
+            border-radius: 8px;
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+            box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+        }
+        label {
+            display: block;
+            margin-bottom: 0.8rem;
+        }
+        input, select {
+            width: 100%;
+            padding: 0.5rem;
+            margin-top: 0.25rem;
+            border-radius: 4px;
+            border: 1px solid #ccc;
+        }
+        .inline {
+            display: flex;
+            align-items: center;
+            gap: 0.4rem;
+            margin-top: 0.75rem;
+        }
+        .inline input[type="checkbox"] {
+            width: auto;
+            margin-top: 0;
+        }
+        button {
+            padding: 0.6rem 1.5rem;
+            border: none;
+            border-radius: 4px;
+            background: #2c6bed;
+            color: #fff;
+            font-size: 1rem;
+            cursor: pointer;
+        }
+        .result, .error, .note {
+            margin-top: 1rem;
+            padding: 0.75rem 1rem;
+            border-radius: 4px;
+        }
+        .result {
+            background: #e8f5e9;
+            color: #1b5e20;
+        }
+        .error {
+            background: #fdecea;
+            color: #b71c1c;
+        }
+        .note {
+            background: #fff9e6;
+            color: #6d4c00;
+            font-size: 0.92rem;
+            line-height: 1.4;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        th, td {
+            padding: 0.5rem;
+            text-align: left;
+            border-bottom: 1px solid #eee;
+        }
+        th {
+            background: #f0f2f8;
+        }
+        img {
+            max-width: 100%;
+            border-radius: 8px;
+            border: 1px solid #eee;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>Local Home Finder</h1>
+        <p>Generate price predictions per model, toggle dimensionality reduction, and review benchmarking plots.</p>
+    </header>
+
+    <form method="post">
+        <label>
+            Square feet
+            <input type="number" name="square_feet" step="1" min="200" value="{{ form_values.square_feet }}">
+        </label>
+        <label>
+            Number of rooms
+            <input type="number" name="num_rooms" step="1" min="1" value="{{ form_values.num_rooms }}">
+        </label>
+        <label>
+            Age of home (years)
+            <input type="number" name="age" step="0.1" min="0" value="{{ form_values.age }}">
+        </label>
+        <label>
+            Distance to city center (miles)
+            <input type="number" name="distance" step="0.1" min="0" value="{{ form_values.distance }}">
+        </label>
+
+        <label>
+            Regression model
+            <select name="model">
+                {% for key, label in model_options %}
+                    <option value="{{ key }}" {% if key == selected_model %}selected{% endif %}>{{ label }}</option>
+                {% endfor %}
+            </select>
+        </label>
+
+        <label class="inline">
+            <input type="checkbox" name="use_dim" value="on" {% if use_dim %}checked{% endif %}>
+            Enable LDA dimensionality reduction
+        </label>
+
+        <button type="submit">Predict price</button>
+
+        {% if prediction is not none %}
+            <div class="result">
+                Predicted price: <strong>${{ "{:,.0f}".format(prediction) }}</strong>
+            </div>
+            {% if use_dim %}
+                <div class="note">
+                    {% if selected_model == 'ridge' %}
+                        *Ridge is a straight-line fit, so rotating the inputs leaves the relationship nearly identical and predictions barely move.
+                    {% elif selected_model == 'gbr' %}
+                        *Gradient Boosting learns smooth corrections with shallow trees; the rotation nudges those corrections but rarely causes big jumps.
+                    {% elif selected_model == 'rf' %}
+                        *Random Forest relies on axis-aligned splits. When LDA rotates the axes, those splits land in new places and the combined prediction can wander more.
+                    {% else %}
+                        *Dimensionality reduction rotates the feature space into new combinations, so this model may react differently than in the original coordinates.
+                    {% endif %}
+                </div>
+            {% endif %}
+        {% endif %}
+        {% if error %}
+            <div class="error">{{ error }}</div>
+        {% endif %}
+    </form>
+
+    <section>
+        <h2>Model benchmarking</h2>
+        <table>
+            <thead>
+                <tr>
+                    <th>Model</th>
+                    <th>Feature space</th>
+                    <th>RMSE</th>
+                    <th>MAE</th>
+                    <th>R²</th>
+                    <th>Fit time (s)</th>
+                    <th>Predict time (s)</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for row in metrics %}
+                    <tr>
+                        <td>{{ row.model_label }}</td>
+                        <td>{{ row.dim_label }}</td>
+                        <td>{{ "{:.0f}".format(row.rmse) }}</td>
+                        <td>{{ "{:.0f}".format(row.mae) }}</td>
+                        <td>{{ "{:.3f}".format(row.r2) }}</td>
+                        <td>{{ "{:.3f}".format(row.fit_time) }}</td>
+                        <td>{{ "{:.3f}".format(row.predict_time) }}</td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </section>
+
+</body>
+</html>
