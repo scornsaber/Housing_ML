@@ -1,0 +1,5 @@
+__pycache__/
+*.pyc
+house_prices_dataset.csv
+house_prices_dataset.csv_Zone.Identifier
+*.csv
